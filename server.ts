@@ -24,8 +24,48 @@ const ai = new GoogleGenAI({
   },
 });
 
-// Helper for model selection
-const MODEL_NAME = "gemini-3.8-flash";
+// Available models in order of priority for text tasks
+const CANDIDATE_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
+];
+
+// Helper to execute generation with automatic model fallback
+async function generateWithFallback(params: {
+  contents: any;
+  config?: any;
+}) {
+  let lastError: any = null;
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: params.contents,
+        config: params.config,
+      });
+      if (response && response.text) {
+        return response;
+      }
+    } catch (err: any) {
+      console.warn(`Model ${model} failed, attempting next model... Error:`, err?.message || err);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Modeller şu an yoğunluk yaşıyor. Lütfen birkaç saniye sonra tekrar deneyiniz.");
+}
+
+function cleanErrorMessage(err: any): string {
+  if (!err) return "Bir hata oluştu.";
+  const raw = err.message || String(err);
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed.error?.message) {
+      return parsed.error.message;
+    }
+  } catch {}
+  return raw;
+}
 
 // 1. Generate Interview Questions tailored to Interviewer Title
 app.post("/api/interview/generate-questions", async (req, res) => {
@@ -65,8 +105,7 @@ Your goal:
 
 Return valid JSON adhering to the specified schema.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const response = await generateWithFallback({
       contents: "Generate the customized interview guide and questions for this interviewer persona.",
       config: {
         systemInstruction,
@@ -155,7 +194,7 @@ Return valid JSON adhering to the specified schema.`;
     res.json(parsed);
   } catch (error: any) {
     console.error("Error generating interview questions:", error);
-    res.status(500).json({ error: error.message || "Failed to generate interview questions." });
+    res.status(500).json({ error: cleanErrorMessage(error) });
   }
 });
 
@@ -196,8 +235,7 @@ Your task is to analyze these training contents deeply and provide a pragmatic, 
 
 Return strictly valid JSON adhering to the schema.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const response = await generateWithFallback({
       contents: `Here are the completed trainings and contents:\n\n${trainingsText}\n\nPlease generate the in-depth career analysis and next steps roadmap.`,
       config: {
         systemInstruction,
@@ -325,7 +363,7 @@ Return strictly valid JSON adhering to the schema.`;
     res.json(parsed);
   } catch (error: any) {
     console.error("Error analyzing trainings:", error);
-    res.status(500).json({ error: error.message || "Failed to analyze trainings." });
+    res.status(500).json({ error: cleanErrorMessage(error) });
   }
 });
 
@@ -360,8 +398,7 @@ Provide rigorous, constructive, and realistic feedback:
 
 Return JSON adhering to schema.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const response = await generateWithFallback({
       contents: "Evaluate this candidate's interview answer.",
       config: {
         systemInstruction,
@@ -409,7 +446,7 @@ Return JSON adhering to schema.`;
     res.json(parsed);
   } catch (error: any) {
     console.error("Error evaluating interview answer:", error);
-    res.status(500).json({ error: error.message || "Failed to evaluate answer." });
+    res.status(500).json({ error: cleanErrorMessage(error) });
   }
 });
 
@@ -426,8 +463,7 @@ Context provided by candidate: ${context}
 Output language: ${language === "en" ? "English" : "Turkish"}
 Give concise, sharp, high-value advice, actionable tips, or interview formulation.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const response = await generateWithFallback({
       contents: message,
       config: {
         systemInstruction,
@@ -437,7 +473,7 @@ Give concise, sharp, high-value advice, actionable tips, or interview formulatio
     res.json({ reply: response.text });
   } catch (error: any) {
     console.error("Error in coach chat:", error);
-    res.status(500).json({ error: error.message || "Failed to get advice." });
+    res.status(500).json({ error: cleanErrorMessage(error) });
   }
 });
 

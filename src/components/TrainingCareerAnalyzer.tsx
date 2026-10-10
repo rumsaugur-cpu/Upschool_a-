@@ -138,19 +138,20 @@ export const TrainingCareerAnalyzer: React.FC<TrainingCareerAnalyzerProps> = ({
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to analyze trainings');
+        const errData = await response.json().catch(() => ({}));
+        setError(errData.error || (isTr ? 'Eğitimler analiz edilirken bir aksaklık yaşandı. Lütfen tekrar deneyin.' : 'Error analyzing training contents. Please try again.'));
+        setIsLoading(false);
+        return;
       }
 
       const data: TrainingAnalysisResult = await response.json();
       setResults(data);
     } catch (err: any) {
-      console.error(err);
       setError(
-        err.message ||
+        err?.message ||
           (isTr
-            ? 'Eğitimler analiz edilirken hata oluştu.'
-            : 'Error analyzing training contents.')
+            ? 'Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.'
+            : 'Error analyzing training contents. Please try again.')
       );
     } finally {
       setIsLoading(false);

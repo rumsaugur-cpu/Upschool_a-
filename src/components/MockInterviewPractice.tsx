@@ -152,19 +152,20 @@ export const MockInterviewPractice: React.FC<MockInterviewPracticeProps> = ({
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Evaluation failed');
+        const errData = await response.json().catch(() => ({}));
+        setError(errData.error || (isTr ? 'Cevabınız değerlendirilirken bir aksaklık yaşandı. Lütfen tekrar deneyin.' : 'Evaluation failed. Please try again.'));
+        setIsLoading(false);
+        return;
       }
 
       const data: AnswerEvaluationResult = await response.json();
       setEvaluation(data);
     } catch (err: any) {
-      console.error(err);
       setError(
-        err.message ||
+        err?.message ||
           (isTr
-            ? 'Cevabınız değerlendirilirken hata oluştu.'
-            : 'Error evaluating answer.')
+            ? 'Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.'
+            : 'Error evaluating answer. Please try again.')
       );
     } finally {
       setIsLoading(false);

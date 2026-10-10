@@ -86,8 +86,10 @@ export const InterviewerQuestionGenerator: React.FC<InterviewerQuestionGenerator
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to generate questions');
+        const errData = await response.json().catch(() => ({}));
+        setError(errData.error || (isTr ? 'Sorular oluşturulurken bir aksaklık yaşandı. Lütfen tekrar deneyin.' : 'Error generating questions. Please try again.'));
+        setIsLoading(false);
+        return;
       }
 
       const data: InterviewQuestionsResult = await response.json();
@@ -96,8 +98,7 @@ export const InterviewerQuestionGenerator: React.FC<InterviewerQuestionGenerator
         setExpandedQuestionId(data.questions[0].id);
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || (isTr ? 'Sorular oluşturulurken hata oluştu.' : 'Error generating questions.'));
+      setError(err?.message || (isTr ? 'Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.' : 'Error generating questions. Please try again.'));
     } finally {
       setIsLoading(false);
     }
