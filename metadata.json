@@ -1,0 +1,6 @@
+{
+  "name": "Interview & Career Coach AI",
+  "description": "Yapay zeka destekli mülakat simülatörü ve kariyer koçu: Mülakatçının unvanına özel soru üretimi, eğitim analizi ve kişiselleştirilmiş sonraki adım kariyer yol haritası.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
